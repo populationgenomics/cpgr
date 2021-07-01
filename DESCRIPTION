@@ -1,0 +1,46 @@
+Package: cpgr
+Title: Centre for Population Genomics R stuff
+Version: 0.0.0.9000
+Description: RMarkdown notebooks and functions used in the Centre for Population
+             Genomics.
+Authors@R:
+    person(given = "Peter",
+           family = "Diakumis",
+           role = c("aut", "cre"),
+           email = "peterdiakumis@gmail.com",
+           comment = c(ORCID = "0000-0002-7502-7545"))
+URL: https://github.com/populationgenomics/cpgr
+BugReports: https://github.com/populationgenomics/cpgr/issues
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+ByteCompile: true
+Depends:
+    R (>= 4.0)
+biocViews:
+Imports:
+    assertthat,
+    dplyr,
+    ggplot2,
+    jsonlite,
+    purrr,
+    readr,
+    rlang,
+    stringr,
+    tidyr
+Roxygen: list(markdown = TRUE,
+              roclets = c("namespace", "rd", "roxytest::testthat_roclet"))
+RoxygenNote: 7.1.1
+Suggests:
+    devtools,
+    glue,
+    kableExtra,
+    knitr,
+    patchwork,
+    rmarkdown,
+    scales,
+    testthat (>= 3.0.0),
+    tibble,
+    tidyselect
+VignetteBuilder: knitr
+Config/testthat/edition: 3

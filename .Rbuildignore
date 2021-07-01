@@ -1,0 +1,13 @@
+^bump\.sh$
+^data-raw$
+^deploy$
+^cpgr\.Rproj$
+^LICENSE\.md$
+^nogit$
+^README\.Rmd$
+^\.Rproj\.user$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$
+^inst/rmd$
