@@ -57,7 +57,7 @@ bucket_path <- function(path, bucket_category = NULL) {
     bucket_category <- glue::glue("{namespace}-{bucket_category}")
   }
 
-  return(file.path("gs:/", glue::glue("cpg-{dataset}-{bucket_category}"), path))
+  return(file.path(glue::glue("gs://cpg-{dataset}-{bucket_category}"), path))
 }
 
 #' Analysis-runner GCS output path
