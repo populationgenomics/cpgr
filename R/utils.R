@@ -36,8 +36,12 @@ mkdir <- function(d) {
 #' # Assuming that the analysis-runner has been invoked with
 #' # `--dataset tob-wgs --access-level test --output snp/v1`:
 #' Sys.setenv("DATASET" = "proj1", "ACCESS_LEVEL" = "test", "OUTPUT" = "dirA/v1")
-#' bucket_path("dir/v1/file.txt") # gs://cpg-proj1-test/dir/v1/file.txt
-#' bucket_path("dir/v1/report.html", "web") # gs://cpg-proj1-test-web/dir/v1/report.html
+#' (b1 <- bucket_path("dir/v1/file.txt")) # gs://cpg-proj1-test/dir/v1/file.txt
+#' (b2 <- bucket_path("dir/v1/report.html", "web")) # gs://cpg-proj1-test-web/dir/v1/report.html
+#'
+#' @testexamples
+#' expect_equal(b1, "gs://cpg-proj1-test/dir/v1/file.txt")
+#' expect_equal(b2, "gs://cpg-proj1-test-web/dir/v1/report.html")
 #'
 #' @export
 bucket_path <- function(path, bucket_category = NULL) {
@@ -74,8 +78,12 @@ bucket_path <- function(path, bucket_category = NULL) {
 #' # Assuming that the analysis-runner has been invoked with
 #' # `--dataset tob-wgs --access-level test --output snp/v1`:
 #' Sys.setenv("DATASET" = "proj1", "ACCESS_LEVEL" = "test", "OUTPUT" = "dirA/v1")
-#' output_path("report.html", "web") # "gs://cpg-proj1-test-web/dirA/v1/report.html"
-#' output_path("output.txt") # "gs://cpg-proj1-test/dirA/v1/output.txt"
+#' (o1 <- output_path("report.html", "web")) # gs://cpg-proj1-test-web/dirA/v1/report.html
+#' (o2 <- output_path("output.txt")) # gs://cpg-proj1-test/dirA/v1/output.txt
+#'
+#' @testexamples
+#' expect_equal(o1, "gs://cpg-proj1-test-web/dirA/v1/report.html")
+#' expect_equal(o2, "gs://cpg-proj1-test/dirA/v1/output.txt")
 #'
 #' @export
 output_path <- function(path_suffix, bucket_category = NULL) {

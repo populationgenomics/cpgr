@@ -28,8 +28,8 @@ Requires the \code{DATASET} and \code{ACCESS_LEVEL} environment variables to be 
 # Assuming that the analysis-runner has been invoked with
 # `--dataset tob-wgs --access-level test --output snp/v1`:
 Sys.setenv("DATASET" = "proj1", "ACCESS_LEVEL" = "test", "OUTPUT" = "dirA/v1")
-bucket_path("dir/v1/file.txt") # gs://cpg-proj1-test/dir/v1/file.txt
-bucket_path("dir/v1/report.html", "web") # gs://cpg-proj1-test-web/dir/v1/report.html
+(b1 <- bucket_path("dir/v1/file.txt")) # gs://cpg-proj1-test/dir/v1/file.txt
+(b2 <- bucket_path("dir/v1/report.html", "web")) # gs://cpg-proj1-test-web/dir/v1/report.html
 
 }
 \seealso{
