@@ -18,11 +18,11 @@ for a full list of categories and their use cases.}
 Full GCS path.
 }
 \description{
-Returns a full GCS path for the given bucket category and path.
-This is useful for specifying input files, as in contrast to the
-\code{\link{output_path}} function, \code{bucket_path} does \emph{not} take the "output"
-parameter from the analysis-runner invocation into account.
-Requires the \code{DATASET} and \code{ACCESS_LEVEL} environment variables to be set.
+Returns a full GCS path for the given bucket category and path. This is
+useful for specifying input files, as in contrast to the
+\code{\link{output_path}} function, \code{bucket_path} does \emph{not} take the
+"output" parameter from the analysis-runner invocation into account. Requires
+the \code{DATASET} and \code{ACCESS_LEVEL} environment variables to be set.
 }
 \examples{
 # Assuming that the analysis-runner has been invoked with

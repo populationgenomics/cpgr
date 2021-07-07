@@ -20,6 +20,8 @@ Full GCS path.
 \description{
 In contrast to the \code{\link{bucket_path}} function, \code{output_path} takes
 the "output" parameter from the analysis-runner invocation into account.
+Requires the \code{DATASET}, \code{ACCESS_LEVEL}, and \code{OUTPUT} environment variables to
+be set.
 }
 \examples{
 # Assuming that the analysis-runner has been invoked with

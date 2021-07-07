@@ -16,17 +16,17 @@ mkdir <- function(d) {
 
 #' Analysis-runner GCS bucket path
 #'
-#' Returns a full GCS path for the given bucket category and path.
-#' This is useful for specifying input files, as in contrast to the
-#' \code{\link{output_path}} function, `bucket_path` does _not_ take the "output"
-#' parameter from the analysis-runner invocation into account.
-#' Requires the `DATASET` and `ACCESS_LEVEL` environment variables to be set.
+#' Returns a full GCS path for the given bucket category and path. This is
+#' useful for specifying input files, as in contrast to the
+#' \code{\link{output_path}} function, `bucket_path` does _not_ take the
+#' "output" parameter from the analysis-runner invocation into account. Requires
+#' the `DATASET` and `ACCESS_LEVEL` environment variables to be set.
 #'
 #' @param path A path to append to the bucket.
 #' @param bucket_category A category like "upload", "tmp", "web". If omitted,
-#' defaults to the "main" and "test" buckets based on the access level. See
-#' https://github.com/populationgenomics/team-docs/tree/main/storage_policies
-#' for a full list of categories and their use cases.
+#'   defaults to the "main" and "test" buckets based on the access level. See
+#'   https://github.com/populationgenomics/team-docs/tree/main/storage_policies
+#'   for a full list of categories and their use cases.
 #'
 #' @return Full GCS path.
 #'
@@ -64,6 +64,8 @@ bucket_path <- function(path, bucket_category = NULL) {
 #'
 #' In contrast to the \code{\link{bucket_path}} function, `output_path` takes
 #' the "output" parameter from the analysis-runner invocation into account.
+#' Requires the `DATASET`, `ACCESS_LEVEL`, and `OUTPUT` environment variables to
+#' be set.
 #'
 #' @param path_suffix A suffix to append to the bucket + output directory.
 #' @param bucket_category A category like "upload", "tmp", "web". If omitted,

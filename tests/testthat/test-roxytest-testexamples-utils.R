@@ -15,7 +15,7 @@ test_that("Function bucket_path() @ L47", {
 })
 
 
-test_that("Function output_path() @ L89", {
+test_that("Function output_path() @ L91", {
   
   # Assuming that the analysis-runner has been invoked with
   # `--dataset tob-wgs --access-level test --output snp/v1`:
