@@ -1,6 +1,6 @@
 Package: cpgr
 Title: Centre for Population Genomics R stuff
-Version: 0.0.0.9000
+Version: 0.0.2
 Description: RMarkdown notebooks and functions used in the Centre for Population
              Genomics.
 Authors@R:
