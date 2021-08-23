@@ -12,8 +12,8 @@ output:
     highlight: kate
 params:
   title: "ExpansionHunter REViewer Results"
-  variant_catalog: "nogit/expansionhunter/variant_catalog.json"
-  indir: "nogit/expansionhunter/output"
+  variant_catalog: "expansionhunter/variant_catalog.json"
+  indir: "expansionhunter/output"
 description: "ExpansionHunter REViewer Results"
 title: "`r params$title`"
 ---
@@ -23,14 +23,12 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
 ```{r load_pkgs}
-require(DT)
-require(fs)
+require(fs, include.only = "dir_ls")
 require(glue)
 require(here)
 require(jsonlite, include.only = "read_json")
-require(kableExtra)
+require(kableExtra, include.only = c("kable_minimal", "kable_material"))
 require(knitr)
-require(rlang)
 require(tidyverse)
 ```
 
@@ -49,7 +47,7 @@ The loci were selected based on the variant catalog available at the ExpansionHu
 [GitHub repo](https://github.com/Illumina/ExpansionHunter/blob/c33a6faee33ed30557e3fa98170a81c65bf26d41/variant_catalog/hg38/variant_catalog.json).
 
 ```{r select_json_fields}
-jsons <- fs::dir_ls(here(params$indir), glob = "*.json", recurse = TRUE) |>
+jsons <- dir_ls(params$indir, glob = "*.json", recurse = TRUE) |>
   as_tibble_col("fname") |>
   mutate(sample = basename(dirname(fname)))
 
@@ -68,12 +66,12 @@ pluck_json <- function(fname, sname) {
         FragLen = l$FragmentLength
       )
     }) |>
-      bind_rows() |> 
+      bind_rows() |>
       mutate(Sample = sname, Cov = floor(Cov)) |>
       select(Sample, everything())
   }
-  
-  jsonlite::read_json(fname) |> 
+
+  read_json(fname) |>
     pluck_locus_results(sname) |>
     bind_rows()
 }
@@ -83,13 +81,12 @@ names(x) <- jsons$sample
 for (i in seq_len(nrow(jsons))) {
   x[[jsons$sample[i]]] <- pluck_json(jsons$fname[i], jsons$sample[i])
 }
-d <- dplyr::bind_rows(x)
+d <- bind_rows(x)
 ```
-
 
 ```{r find_previewer_svg}
 # find SVG files in indir
-svg <- fs::dir_ls(here(params$indir), glob = "*.svg", recurse = TRUE) |>
+svg <- dir_ls(params$indir, glob = "*.svg", recurse = TRUE) |>
   as_tibble_col("fname") |>
   mutate(bname = basename(fname)) |>
   tidyr::separate(bname, into = c("sample", "locus", "svg"), sep = "\\.") |>
@@ -100,8 +97,8 @@ loci <- unique(svg$locus)
 svg_sample_locus <- function(svg, s, l) {
   svg |> filter(sample == s, locus == l) |> pull(fname)
 }
-knitr::kable(as_tibble_col(samples, "samples")) |>
-  kableExtra::kable_minimal()
+kable(as_tibble_col(samples, "samples")) |>
+  kable_minimal()
 ```
 
 ## Results {.tabset .tabset-pills}
@@ -110,7 +107,7 @@ knitr::kable(as_tibble_col(samples, "samples")) |>
 cat('\n\n')
 for (l in loci) {
   cat(glue("### {l}"), "\n")
-  print(d |> filter(Locus == l) |> knitr::kable() |> kableExtra::kable_material())
+  print(d |> filter(Locus == l) |> kable() |> kable_material())
   for (s in samples) {
     cat(glue("#### {s}"), "\n")
     cat(glue("![]({svg_sample_locus(svg, s, l)})"), "\n")
