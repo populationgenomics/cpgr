@@ -1,47 +1,138 @@
 library(tidyverse)
 # for GCS authentication
-library(googleCloudStorageR, include.only = c("gcs_list_objects", "gcs_auth"))
-library(gargle, include.only = "token_fetch")
+# library(googleCloudStorageR, include.only = c("gcs_list_objects", "gcs_auth"))
+# library(gargle, include.only = "token_fetch")
 library(fs)
 library(glue)
+library(here)
 
-x1 <- here::here("nogit/cromwell/e5b51e30-3952-47f6-9b39-e17fb81cf929_metadata.json")
-x2 <- here::here("nogit/cromwell/af805f60-ce68-495b-ab12-5886ca292e0e_metadata.json")
+x1 <- here("nogit/cromwell/01_e5b51e30-3952-47f6-9b39-e17fb81cf929_metadata.json")
+x2 <- here("nogit/cromwell/02_af805f60-ce68-495b-ab12-5886ca292e0e_metadata.json")
+x3 <- here("nogit/cromwell/03_e6aeef3c-878f-4df3-b257-4fd6eebaf7d6_metadata.json")
+x4 <- here("nogit/cromwell/04_04da63d0-03a5-431d-8ec2-449cada8f647_metadata.json")
 
 cromwell_read_metadata <- function(x) {
   j <- jsonlite::read_json(x)
   calls <- j$calls$GatherSampleEvidenceBatch.GatherSampleEvidence
+  clean_sample_metrics <- function(d) {
+    if (nrow(d) == 0) {
+      return(list(metrics = NA))
+    }
+    out <- d |>
+      mutate(
+        b = basename(value),
+        group = case_when(
+          grepl("delly_.*\\.vcf\\.tsv", b) ~ "metrics_delly",
+          grepl("manta_.*\\.vcf\\.tsv", b) ~ "metrics_manta",
+          grepl("wham_.*\\.vcf\\.tsv", b) ~ "metrics_wham",
+          grepl(".*\\.sr-file\\.tsv", b) ~ "metrics_sr",
+          grepl(".*\\.pe-file\\.tsv", b) ~ "metrics_pe",
+          grepl(".*\\.raw-counts\\.tsv", b) ~ "metrics_raw"
+        )) |>
+      select(group, value) |>
+      pivot_wider(names_from = group, values_from = value)
+    list(metrics = out)
+  }
   o <- purrr::map(calls, function(k) {
     m <- k[["subWorkflowMetadata"]][["calls"]]
     tibble::tibble(
       sample_id = k[["inputs"]][["sample_id"]],
       cram = m[["GatherSampleEvidence.CramToBam"]][[1]][["inputs"]][["cram_file"]],
       bam = m[["GatherSampleEvidence.CramToBam"]][[1]][["outputs"]][["bam_file"]],
+      bami = m[["GatherSampleEvidence.CramToBam"]][[1]][["outputs"]][["bam_index"]],
       manta = m[["GatherSampleEvidence.Manta"]][[1]][["outputs"]][["vcf"]],
+      mantai = m[["GatherSampleEvidence.Manta"]][[1]][["outputs"]][["index"]],
       delly = m[["GatherSampleEvidence.Delly"]][[1]][["outputs"]][["vcf"]],
+      dellyi = m[["GatherSampleEvidence.Delly"]][[1]][["outputs"]][["index"]],
       wham = m[["GatherSampleEvidence.Whamg"]][[1]][["outputs"]][["vcf"]],
+      whami = m[["GatherSampleEvidence.Whamg"]][[1]][["outputs"]][["index"]],
+      counts = m[["GatherSampleEvidence.CollectCounts"]][[1]][["outputs"]][["counts"]],
       pesr_split = m[["GatherSampleEvidence.PESRCollection"]][[1]][["outputs"]][["split_out"]],
+      pesr_spliti = m[["GatherSampleEvidence.PESRCollection"]][[1]][["outputs"]][["split_out_index"]],
       pesr_disc = m[["GatherSampleEvidence.PESRCollection"]][[1]][["outputs"]][["disc_out"]],
-      # sample_metrics = k[["outputs"]][["sample_metrics_files"]]
+      pesr_disci = m[["GatherSampleEvidence.PESRCollection"]][[1]][["outputs"]][["disc_out_index"]],
+      sample_metrics = m[["GatherSampleEvidence.GatherSampleEvidenceMetrics"]][[1]][["outputs"]][["sample_metrics_files"]] |> unlist() |> as_tibble_col() |> clean_sample_metrics()
     )
   }) |>
-    dplyr::bind_rows()
+    dplyr::bind_rows() |>
+    tidyr::unnest(sample_metrics)
+    # select(-sample_metrics)
   o
 }
 
-m1 <- cromwell_read_metadata(x1)
-m2 <- cromwell_read_metadata(x2)
+m1 <- cromwell_read_metadata(x1) |> select(-sample_metrics)
+m2 <- cromwell_read_metadata(x2) |> select(-sample_metrics)
+m3 <- cromwell_read_metadata(x3)
+m4 <- cromwell_read_metadata(x4)
 
-m2 |>
-  pivot_longer(cram:pesr_disc) |>
+m1 |>
+  pivot_longer(cram:metrics_raw) |>
   filter(!grepl("gs://", value)) |>
+  filter(!grepl("metrics|whami|dellyi", name)) |>
   arrange(sample_id) |>
   select(sample_id, name)
   # pivot_wider(names_from = name, values_from=value)
 
-# TODO: get size of cram/bam
-m1 |>
-  select(sample_id, cram, bam)
+# m1 |>
+#   select(-cram) |>
+#   pivot_longer(bam:metrics_raw) |>
+#   filter(!is.na(value)) |>
+#   mutate(name2 = case_when(
+#     grepl("^metrics", name) ~ "svmetrics",
+#     grepl("bam", name) ~ "bam",
+#     grepl("^manta", name) ~ "manta",
+#     grepl("^delly", name) ~ "delly",
+#     grepl("^wham", name) ~ "wham",
+#     grepl("^pesr", name) ~ "pesr",
+#     grepl("counts", name) ~ "covcounts",
+#     TRUE ~ "other"
+#   )) |>
+#   select(sample_id, name = name2, from = value) |>
+#   mutate(to = glue("gs://cpg-tob-wgs-test/pdiakumis/gatksv/{sample_id}/{name}/")) |>
+#   mutate(cmd = glue("gsutil mv {from} {to}")) |>
+#   select(cmd) |>
+#   write_tsv("nogit/transfer_outputs.sh", col_names = FALSE)
+
+bind_rows(m3, m4) |>
+  select(-cram) |>
+  pivot_longer(bam:metrics_raw) |>
+  filter(!is.na(value)) |>
+  mutate(name2 = case_when(
+    grepl("^metrics", name) ~ "svmetrics",
+    grepl("bam", name) ~ "bam",
+    grepl("^manta", name) ~ "manta",
+    grepl("^delly", name) ~ "delly",
+    grepl("^wham", name) ~ "wham",
+    grepl("^pesr", name) ~ "pesr",
+    grepl("counts", name) ~ "covcounts",
+    TRUE ~ "other"
+  )) |>
+  select(sample_id, name = name2, from = value) |>
+  filter(name != "bam") |>
+  mutate(to = glue("gs://cpg-tob-wgs-test/pdiakumis/gatksv/{sample_id}/{name}/")) |>
+  mutate(cmd = glue("gsutil mv {from} {to}")) |>
+  select(cmd) |>
+  write_tsv("nogit/transfer_outputs2.sh", col_names = FALSE)
+
+m2 |> filter(sample_id == "CPG11049") |>
+  select(-cram) |>
+  pivot_longer(bam:metrics_raw) |>
+  mutate(name2 = case_when(
+    grepl("^metrics", name) ~ "svmetrics",
+    grepl("bam", name) ~ "bam",
+    grepl("^manta", name) ~ "manta",
+    grepl("^delly", name) ~ "delly",
+    grepl("^wham", name) ~ "wham",
+    grepl("^pesr", name) ~ "pesr",
+    grepl("counts", name) ~ "covcounts",
+    TRUE ~ "other"
+  )) |>
+  select(sample_id, name = name2, from = value) |>
+  filter(name %in% c("delly", "svmetrics")) |>
+  mutate(to = glue("gs://cpg-tob-wgs-test/pdiakumis/gatksv/{sample_id}/{name}/")) |>
+  mutate(cmd = glue("gsutil mv {from} {to}")) |>
+  select(cmd) |>
+  write_tsv("nogit/transfer_outputs3.sh", col_names = FALSE)
 
 guess_file_type <- function(x) {
   case_when(
@@ -154,4 +245,10 @@ bams |>
   # facet_wrap(~batch) +
   ggtitle(glue("Size (bytes) for {nrow(bams)} BAM files.")) +
   xlab("")
+
+
+read_tsv("nogit/cromwell/bucket_contents.txt", col_types = "c", col_names = "path") |>
+  separate(path, into = c("sample_id", "group", "fname"), sep = "/") |>
+  count(sample_id) |> View()
+
 
