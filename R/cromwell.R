@@ -252,3 +252,49 @@ read_tsv("nogit/cromwell/bucket_contents.txt", col_types = "c", col_names = "pat
   count(sample_id) |> View()
 
 
+
+x <- here("nogit/cromwell/melt_a360b090-fcee-4118-b604-8e9b4c3b7ca7_metadata.json")
+cromwell_read_melt_metadata <- function(x) {
+  j <- jsonlite::read_json(x)
+  calls <- j$calls$GatherSampleEvidenceBatch.GatherSampleEvidence
+  o <- purrr::map(calls, function(k) {
+    m <- k[["subWorkflowMetadata"]][["calls"]]
+    melt <- m[["GatherSampleEvidence.MELT"]][[1]][["subWorkflowMetadata"]][["calls"]][["MELT.RunMELT"]][[1]]
+    metrics <- m[["GatherSampleEvidence.GatherSampleEvidenceMetrics"]][[1]][["outputs"]][["sample_metrics_files"]]
+    tibble::tibble(
+      sample_id = k[["inputs"]][["sample_id"]],
+      melt_read_length = melt[["inputs"]][["read_length"]],
+      melt_insert_size = melt[["inputs"]][["insert_size"]],
+      melt_coverage = melt[["inputs"]][["coverage"]],
+      melt_chimeras = melt[["inputs"]][["pct_chimeras"]],
+      melt_total_reads = melt[["inputs"]][["total_reads"]],
+      melt_pf_reads_improper_pairs = melt[["inputs"]][["pf_reads_improper_pairs"]],
+      melt_metrics = metrics |> unlist() |> grep(pattern = "melt_.*\\.vcf\\.tsv", value = TRUE),
+      melt_vcf = melt[["outputs"]][["vcf"]],
+      melt_vcfi = melt[["outputs"]][["index"]]
+    )
+  }) |>
+     dplyr::bind_rows() #|>
+    # tidyr::unnest(sample_metrics)
+    # select(-sample_metrics)
+  o
+}
+
+y <- cromwell_read_melt_metadata(x)
+
+y |>
+  select(sample_id, melt_metrics, melt_vcf, melt_vcfi) |>
+  pivot_longer(c(melt_metrics, melt_vcf, melt_vcfi), values_to = "from") |>
+  mutate(name = if_else(grepl("melt_metrics", name), "svmetrics", "melt")) |>
+  mutate(to = glue("gs://cpg-tob-wgs-test/pdiakumis/gatksv/{sample_id}/{name}/")) |>
+  mutate(cmd = glue("gsutil mv {from} {to}")) |>
+  select(cmd) |>
+  write_tsv("nogit/transfer_outputs_melt.sh", col_names = FALSE)
+
+read_tsv("nogit/cromwell/bucket_contents2.txt", col_types = "c", col_names = "path") |>
+  separate(path, into = c("gs", "foo", "bucket", "me", "gatksv", "sample_id", "group", "fname"), sep = "/") |>
+  count(sample_id) |>
+  filter(n != 22) |>
+  pull(sample_id) |>
+  sort()
+
