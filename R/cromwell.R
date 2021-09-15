@@ -280,6 +280,7 @@ cromwell_read_melt_metadata <- function(x) {
   o
 }
 
+x <- here("nogit/cromwell/melt10_fdf2ecac-2232-415e-85ce-fde488392a9f.json")
 y <- cromwell_read_melt_metadata(x)
 
 y |>
@@ -289,7 +290,7 @@ y |>
   mutate(to = glue("gs://cpg-tob-wgs-test/pdiakumis/gatksv/{sample_id}/{name}/")) |>
   mutate(cmd = glue("gsutil mv {from} {to}")) |>
   select(cmd) |>
-  write_tsv("nogit/transfer_outputs_melt.sh", col_names = FALSE)
+  write_tsv(here("../sv-workflows/gatk-sv/scripts/transfer_outputs_melt10.sh"), col_names = FALSE)
 
 read_tsv("nogit/cromwell/bucket_contents2.txt", col_types = "c", col_names = "path") |>
   separate(path, into = c("gs", "foo", "bucket", "me", "gatksv", "sample_id", "group", "fname"), sep = "/") |>
