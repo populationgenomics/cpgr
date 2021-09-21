@@ -153,6 +153,7 @@ guess_file_type <- function(x) {
     grepl("\\.tbi$", x, ignore.case = TRUE) ~ "VCFindex",
     grepl("\\.csv$", x, ignore.case = TRUE) ~ "CSV",
     grepl("\\.json$", x, ignore.case = TRUE) ~ "JSON",
+    grepl("\\.counts.tsv.gz$", x, ignore.case = TRUE) ~ "CovCounts",
     TRUE ~ "OTHER")
 }
 
@@ -292,10 +293,13 @@ y |>
   select(cmd) |>
   write_tsv(here("../sv-workflows/gatk-sv/scripts/transfer_outputs_melt10.sh"), col_names = FALSE)
 
-read_tsv("nogit/cromwell/bucket_contents2.txt", col_types = "c", col_names = "path") |>
-  separate(path, into = c("gs", "foo", "bucket", "me", "gatksv", "sample_id", "group", "fname"), sep = "/") |>
-  count(sample_id) |>
-  filter(n != 22) |>
-  pull(sample_id) |>
-  sort()
-
+read_tsv("nogit/cromwell/bucket_contents3.txt", col_types = "c", col_names = "path") |>
+  separate(path, into = c("gs", "foo", "bucket", "me", "gatksv", "sample_id", "group", "fname"),
+           sep = "/", remove = FALSE) |>
+  select(path, sample_id, group) |>
+  filter(group %in% c("delly", "wham", "melt", "manta", "covcounts")) |>
+  mutate(ftype = guess_file_type(path)) |>
+  filter(ftype %in% c("VCF", "CovCounts")) |>
+  select(path, sample_id, group) |>
+  pivot_wider(names_from = group, values_from = path) |>
+  jsonlite::write_json(pretty=T, dataframe = "columns", path = "nogit/cromwell/evidenceqc.json")
