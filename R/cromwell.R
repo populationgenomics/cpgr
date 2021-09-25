@@ -303,3 +303,37 @@ read_tsv("nogit/cromwell/bucket_contents3.txt", col_types = "c", col_names = "pa
   select(path, sample_id, group) |>
   pivot_wider(names_from = group, values_from = path) |>
   jsonlite::write_json(pretty=T, dataframe = "columns", path = "nogit/cromwell/evidenceqc.json")
+
+# TrainGCNV
+x <- read_tsv(here("../sv-workflows/gatk-sv/scripts/TrainGCNV_outputs.sh"), col_types = "c", col_names = "path") |>
+  separate(path, sep = "/", into = c("foo1", "foo2", "bucket", "pdiakumis", "gatksvbatch_13_14",
+                                     "TrainGCNV", "wflid", "call_CNVGermlineCohortWorkflow",
+                                     "CNVGermlineCohortWorkflow", "sub1", "sub2", "rest"),
+           extra = "merge", remove = FALSE) |>
+  select(sub2, rest, path)
+
+#### GermlineCNVCallerCohortMode
+# Each shard has:
+# - gcnv-calls for each sample (96)
+# - gcnv-model (1)
+# - gcnv-tracking (1)
+# So, (96 + 1 + 1) * 290 shards = 28420 rows
+x |>
+  mutate(p1 = case_when(
+    sub2 == "call-FilterIntervalsForCNV" ~ "filterIntervalsCNV/",
+    sub2 == "call-FilterIntervalsForPloidy" ~ "filterIntervalsPloidy/",
+    sub2 == "call-AnnotateIntervals" ~ "annotateIntervals/",
+    sub2 == "call-DetermineGermlineContigPloidyCohortMode" ~ "DetermineGermlineContigPloidyCohortMode/",
+    sub2 == "call-GermlineCNVCallerCohortMode" & grepl("gcnv-calls-shard", rest) ~ "call_files/",
+    sub2 == "call-GermlineCNVCallerCohortMode" & grepl("gcnv-model-shard", rest) ~ "model_files/",
+    sub2 == "call-GermlineCNVCallerCohortMode" & grepl("gcnv-tracking-shard", rest) ~ "tracking_files/",
+    sub2 == "call-PostprocessGermlineCNVCalls" ~ "postprocessedCNVCalls/",
+    TRUE ~ "FOO/"
+    )
+  ) |>
+  mutate(
+    bname = basename(path),
+    to = glue("gs://cpg-tob-wgs-test/pdiakumis/gatksv/traingcnv/tob96/{p1}{bname}")) |>
+  mutate(cmd = glue("gsutil mv {path} {to}")) |>
+  select(cmd) |>
+  write_tsv(here("../sv-workflows/gatk-sv/scripts/transfer_outputs_traingcnv.sh"), col_names = FALSE)
