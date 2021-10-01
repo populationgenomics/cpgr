@@ -154,6 +154,8 @@ guess_file_type <- function(x) {
     grepl("\\.csv$", x, ignore.case = TRUE) ~ "CSV",
     grepl("\\.json$", x, ignore.case = TRUE) ~ "JSON",
     grepl("\\.counts.tsv.gz$", x, ignore.case = TRUE) ~ "CovCounts",
+    grepl("\\.disc.txt.gz$", x, ignore.case = TRUE) ~ "Disc",
+    grepl("\\.split.txt.gz$", x, ignore.case = TRUE) ~ "Split",
     TRUE ~ "OTHER")
 }
 
@@ -337,3 +339,28 @@ x |>
   mutate(cmd = glue("gsutil mv {path} {to}")) |>
   select(cmd) |>
   write_tsv(here("../sv-workflows/gatk-sv/scripts/transfer_outputs_traingcnv.sh"), col_names = FALSE)
+
+### GatherBatchEvidence Inputs
+here("nogit/gatksv/evidence_bucket_contents.txt") |>
+  read_tsv(col_types = "c", col_names = "path") |>
+  separate(path, into = c("gs", "foo", "bucket", "me", "gatksv", "evidence", "sample_id", "group", "fname"),
+           sep = "/", remove = FALSE) |>
+  select(path, sample_id, group) |>
+  filter(group %in% c("wham", "melt", "manta", "covcounts", "pesr")) |>
+  mutate(ftype = guess_file_type(path),
+         group = glue("{group}_{ftype}")) |>
+  filter(group %in% c(paste0(c("manta", "melt", "wham"), "_VCF"), "covcounts_CovCounts", "pesr_Split", "pesr_Disc")) |>
+  select(path, sample_id, group) |>
+  pivot_wider(names_from = group, values_from = path) |>
+  jsonlite::write_json(pretty=T, dataframe = "columns", path = here("nogit/gatksv/GatherBatchEvidence_inputs1.json"))
+
+## GVCFs
+here("nogit/gatksv/gvcfs.txt") |>
+  read_tsv(col_types = "c", col_names = "path") |>
+  separate(path, into = c("gs", "foo", "bucket", "gvcf", "batch", "fname"),
+           sep = "/", remove = FALSE) |>
+  select(path, batch) |>
+  mutate(sample_id = sub("(.*).g.vcf.gz", "\\1", basename(path))) |>
+  arrange(sample_id) |>
+  select(path) |>
+  write_tsv(here("nogit/gatksv/GatherBatchEvidence_inputs2.tsv"), quote = "all", col_names = FALSE)
